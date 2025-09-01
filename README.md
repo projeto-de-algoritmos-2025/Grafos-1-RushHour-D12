@@ -10,8 +10,8 @@
 <div align = "center">
 <table>
   <tr>
-    <td align="center"><a href="https://github.com/CarolinaBarb"><img style="border-radius: 50%;" alt=""/><br /><sub><b>Bianca Patrocínio</b></sub></a><br /><a href="Link git" title="Rocketseat"></a></td>
-    <td align="center"><a href="https://github.com/JuliaSSouza"><img style="border-radius: 50%;" alt=""/><br /><sub><b>Leticia Torres </b></sub></a><br />
+    <td align="center"><a href="https://github.com/CarolinaBarb"><img style="border-radius: 50%;" alt=""/><br /><sub><b>Carolina Barbosa </b></sub></a><br /><a href="Link git" title="Rocketseat"></a></td>
+    <td align="center"><a href="https://github.com/JuliaSSouza"><img style="border-radius: 50%;" alt=""/><br /><sub><b>Julia Sant'Anna</b></sub></a><br />
   </tr>
 </table>
 
