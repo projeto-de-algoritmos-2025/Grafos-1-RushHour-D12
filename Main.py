@@ -2,8 +2,6 @@ import pygame
 import random
 from collections import deque
 
-# --- Constantes ---
-# Cores
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (211, 211, 211)
@@ -18,14 +16,12 @@ PINK = (255, 192, 203)
 BUTTON_COLOR = (100, 200, 100)
 BUTTON_TEXT_COLOR = (255, 255, 255)
 
-# Dimensões
 SCREEN_WIDTH = 600
 SCREEN_HEIGHT = 700
 TILE_SIZE = 100
 GRID_WIDTH = 6
 GRID_HEIGHT = 6
 
-# --- Classes ---
 class Block:
     def __init__(self, x, y, width, height, color, is_main_block=False):
         self.x, self.y, self.width, self.height, self.color, self.is_main_block = x, y, width, height, color, is_main_block
@@ -54,7 +50,6 @@ class Button:
     def is_clicked(self, pos):
         return self.rect.collidepoint(pos)
 
-# --- Funções Auxiliares ---
 def draw_grid(surface):
     for x in range(0, GRID_WIDTH * TILE_SIZE + 1, TILE_SIZE):
         pygame.draw.line(surface, GRAY, (x, 0), (x, GRID_HEIGHT * TILE_SIZE))
@@ -125,3 +120,145 @@ def solve_puzzle(initial_blocks, silent=False):
     if not silent:
         print("Nenhuma solução encontrada.")
     return None
+
+# Lógica de geração de Quebra-Cabeça 
+def generate_final_puzzle(screen, font, min_solution_moves=10):
+    loading_text = font.render('Gerando nível difícil...', True, BLACK)
+    text_rect = loading_text.get_rect(center=(SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
+
+    other_blocks_prototypes = [
+        {'width': 1, 'height': 3, 'color': ORANGE}, {'width': 2, 'height': 1, 'color': YELLOW},
+        {'width': 1, 'height': 2, 'color': GREEN},  {'width': 2, 'height': 1, 'color': BLUE},
+        {'width': 1, 'height': 3, 'color': PURPLE}, {'width': 2, 'height': 1, 'color': CYAN},
+        {'width': 2, 'height': 1, 'color': PINK}
+    ]
+
+    while True:
+        screen.fill(WHITE)
+        screen.blit(loading_text, text_rect)
+        pygame.display.flip()
+        pygame.event.pump()
+
+        blocks = []
+        start_y = random.choice([0, 1])
+        red_block = Block(x=1, y=start_y, width=1, height=2, color=RED, is_main_block=True)
+        blocks.append(red_block)
+
+        possible_positions = [(x, y) for x in range(GRID_WIDTH) for y in range(GRID_HEIGHT)]
+        random.shuffle(possible_positions)
+        occupied_cells = {(1, start_y), (1, start_y + 1)}
+        
+        for proto in other_blocks_prototypes:
+            placed = False
+            for x, y in possible_positions:
+                new_rect = pygame.Rect(x, y, proto['width'], proto['height'])
+                if new_rect.right > GRID_WIDTH or new_rect.bottom > GRID_HEIGHT:
+                    continue
+                collides = False
+                for i in range(new_rect.width):
+                    for j in range(new_rect.height):
+                        if (x + i, y + j) in occupied_cells:
+                            collides = True
+                            break
+                    if collides: break
+                if not collides:
+                    blocks.append(Block(x, y, proto['width'], proto['height'], proto['color']))
+                    for i in range(new_rect.width):
+                        for j in range(new_rect.height):
+                            occupied_cells.add((x + i, y + j))
+                    placed = True
+                    break
+            if not placed: break
+        
+        if len(blocks) != len(other_blocks_prototypes) + 1:
+            continue
+        
+        solution = solve_puzzle(blocks, silent=True)
+        if solution and len(solution) >= min_solution_moves:
+            print(f"Nível encontrado com {len(solution)} movimentos!")
+            return blocks
+
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Rush Hour Desafio Final")
+    
+    font = pygame.font.Font(None, 74)
+    small_font = pygame.font.Font(None, 40)
+
+    blocks = generate_final_puzzle(screen, small_font, min_solution_moves=10)
+    
+    dragging_block, mouse_start_pos, block_start_pos = None, None, None
+    game_won = False
+    new_game_button = Button(SCREEN_WIDTH // 2 - 100, 620, 200, 60, "Nova Partida")
+    running = True
+    clock = pygame.time.Clock()
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_s and not game_won:
+                    print("Solver ativado...")
+                    solution = solve_puzzle(blocks)
+                    if solution:
+                        print(f"\n--- SOLUÇÃO MÍNIMA: {len(solution)} MOVIMENTOS ---")
+                        for i, move in enumerate(solution):
+                            print(f"{i+1}. {move}")
+                        print("------------------------------------------")
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if new_game_button.is_clicked(event.pos):
+                        blocks = generate_final_puzzle(screen, small_font, min_solution_moves=10)
+                        game_won, dragging_block = False, None
+                        continue
+                    if not game_won:
+                        grid_x, grid_y = event.pos[0] // TILE_SIZE, event.pos[1] // TILE_SIZE
+                        block = get_block_at(grid_x, grid_y, blocks)
+                        if block:
+                            dragging_block, mouse_start_pos, block_start_pos = block, event.pos, (block.x, block.y)
+
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    dragging_block = None
+
+            if event.type == pygame.MOUSEMOTION:
+                if dragging_block and not game_won:
+                    mouse_x, mouse_y = event.pos
+                    dx, dy = mouse_x - mouse_start_pos[0], mouse_y - mouse_start_pos[1]
+                    target_x, target_y = block_start_pos
+                    if dragging_block.height == 1:
+                        target_x += round(dx / TILE_SIZE)
+                    elif dragging_block.width == 1:
+                        target_y += round(dy / TILE_SIZE)
+                    if (target_x, target_y) != (dragging_block.x, dragging_block.y):
+                        if is_move_valid(dragging_block, target_x, target_y, blocks):
+                            dragging_block.x, dragging_block.y = target_x, target_y
+                            mouse_start_pos, block_start_pos = event.pos, (dragging_block.x, dragging_block.y)
+                            
+                            main_block = next(b for b in blocks if b.is_main_block)
+                            if main_block.y == GRID_HEIGHT - main_block.height:
+                                print("Você venceu!")
+                                game_won = True
+        
+        screen.fill(WHITE)
+        draw_exit_zone(screen)
+        draw_grid(screen)
+        for block in blocks:
+            block.draw(screen)
+        
+        new_game_button.draw(screen)
+        if game_won:
+            text = font.render('VOCÊ VENCEU!', True, BLACK, (200, 255, 200))
+            text_rect = text.get_rect(center=(SCREEN_WIDTH/2, (GRID_HEIGHT * TILE_SIZE)/2))
+            screen.blit(text, text_rect)
+            
+        pygame.display.flip()
+        clock.tick(60)
+    pygame.quit()
+
+if __name__ == '__main__':
+    main()
