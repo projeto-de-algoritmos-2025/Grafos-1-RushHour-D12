@@ -64,5 +64,9 @@ python main.py
 ```
 
 ## Apresentação 
-[Video](https://www.youtube.com/watch?v=oQbqbeBKatM)
+[Vídeo](https://www.youtube.com/watch?v=oQbqbeBKatM)
+
+ 
+ 
+
 
